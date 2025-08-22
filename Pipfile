@@ -1,0 +1,18 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "*"
+uvicorn = "*"
+httpx = "*"
+aiosmtplib = "*"
+aioimaplib = "*"
+
+[dev-packages]
+black = "*"
+mypy = "*"
+
+[requires]
+python_version = "3.12"

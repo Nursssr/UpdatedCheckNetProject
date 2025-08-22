@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Проверка сети</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100vh;
+      margin: 0;
+      padding-top: 40px;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 420px;
+    }
+    h2 { margin-top: 0; text-align: center; }
+    label { display: block; margin-top: 10px; }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    button:hover { background: #0056b3; }
+    pre {
+      background: #eee;
+      padding: 10px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Проверка сети</h2>
+
+    <label>Тип соединения:
+      <select id="type">
+        <option value="HTTP" selected>HTTP</option>
+        <option value="IMAP">IMAP</option>
+        <option value="SMTP">SMTP</option>
+      </select>
+    </label>
+
+    <!-- HTTP -->
+    <div id="http-fields">
+      <label>Адрес: <input type="text" id="http_address" placeholder="example.com"></label>
+      <label>Порт: <input type="number" id="http_port" value="80"></label>
+      <label>Таймаут (сек): <input type="number" id="http_timeout" value="5"></label>
+      <label><input type="checkbox" id="http_ssl"> Использовать HTTPS</label>
+      <label>Метод HTTP:
+        <select id="http_method">
+          <option>GET</option>
+          <option>POST</option>
+          <option>PUT</option>
+          <option>PATCH</option>
+          <option>DELETE</option>
+          <option>HEAD</option>
+          <option>OPTIONS</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- IMAP -->
+    <div id="imap-fields" style="display:none;">
+      <label>Host: <input type="text" id="imap_host"></label>
+      <label>Port: <input type="number" id="imap_port" value="993"></label>
+      <label><input type="checkbox" id="imap_ssl" checked> SSL</label>
+      <label>Timeout: <input type="number" id="imap_timeout" value="5"></label>
+      <label>Username: <input type="text" id="imap_username"></label>
+      <label>Password: <input type="password" id="imap_password"></label>
+    </div>
+
+    <!-- SMTP -->
+    <div id="smtp-fields" style="display:none;">
+      <label>Host: <input type="text" id="smtp_host"></label>
+      <label>Port: <input type="number" id="smtp_port" value="465"></label>
+      <label>Timeout: <input type="number" id="smtp_timeout" value="5"></label>
+      <label><input type="checkbox" id="smtp_use_tls" checked> Use TLS</label>
+      <label><input type="checkbox" id="smtp_start_tls"> StartTLS</label>
+      <label><input type="checkbox" id="smtp_validate_certs" checked> Validate Certs</label>
+      <label>Username: <input type="text" id="smtp_username"></label>
+      <label>Password: <input type="password" id="smtp_password"></label>
+    </div>
+
+    <button onclick="checkConnection()">Проверить</button>
+    <pre id="result"></pre>
+  </div>
+
+<script>
+  // переключение форм
+  document.getElementById("type").addEventListener("change", function() {
+    const type = this.value;
+    document.getElementById("http-fields").style.display = type === "HTTP" ? "block" : "none";
+    document.getElementById("imap-fields").style.display = type === "IMAP" ? "block" : "none";
+    document.getElementById("smtp-fields").style.display = type === "SMTP" ? "block" : "none";
+  });
+
+  // автопорты
+  document.getElementById("http_ssl").addEventListener("change", function() {
+    document.getElementById("http_port").value = this.checked ? 443 : 80;
+  });
+  document.getElementById("imap_ssl").addEventListener("change", function() {
+    document.getElementById("imap_port").value = this.checked ? 993 : 143;
+  });
+  document.getElementById("smtp_use_tls").addEventListener("change", function() {
+    if (this.checked) {
+      document.getElementById("smtp_start_tls").checked = false;
+      document.getElementById("smtp_port").value = 465;
+    }
+  });
+  document.getElementById("smtp_start_tls").addEventListener("change", function() {
+    if (this.checked) {
+      document.getElementById("smtp_use_tls").checked = false;
+      document.getElementById("smtp_port").value = 587;
+    }
+  });
+
+  async function checkConnection() {
+    const type = document.getElementById("type").value;
+    let data = { type };
+
+    if (type === "HTTP") {
+      data = {
+        ...data,
+        address: document.getElementById("http_address").value,
+        port: parseInt(document.getElementById("http_port").value),
+        timeout: parseFloat(document.getElementById("http_timeout").value),
+        method: document.getElementById("http_method").value,
+        ssl: document.getElementById("http_ssl").checked
+      };
+    } else if (type === "IMAP") {
+      data = {
+        ...data,
+        host: document.getElementById("imap_host").value,
+        port: parseInt(document.getElementById("imap_port").value),
+        ssl: document.getElementById("imap_ssl").checked,
+        timeout: parseFloat(document.getElementById("imap_timeout").value),
+        username: document.getElementById("imap_username").value,
+        password: document.getElementById("imap_password").value
+      };
+    } else if (type === "SMTP") {
+      data = {
+        ...data,
+        host: document.getElementById("smtp_host").value,
+        port: parseInt(document.getElementById("smtp_port").value),
+        timeout: parseFloat(document.getElementById("smtp_timeout").value),
+        use_tls: document.getElementById("smtp_use_tls").checked,
+        start_tls: document.getElementById("smtp_start_tls").checked,
+        validate_certs: document.getElementById("smtp_validate_certs").checked,
+        username: document.getElementById("smtp_username").value,
+        password: document.getElementById("smtp_password").value
+      };
+    }
+
+    const resultEl = document.getElementById("result");
+    resultEl.textContent = "⏳ Проверка...";
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+
+      if (result.status === "success") {
+        if (result.type === "HTTP") {
+          resultEl.textContent =
+            `✅ HTTP ${result.code} (${result.protocol})\n\n` +
+            `Headers:\n${JSON.stringify(result.headers, null, 2)}\n\n` +
+            `Body:\n${result.body}`;
+        } else {
+          resultEl.textContent = `✅ ${result.type} — ${result.message || "соединение успешно"}`;
+        }
+      } else {
+        resultEl.textContent = `❌ Ошибка: ${result.error}`;
+      }
+    } catch (err) {
+      resultEl.textContent = `⚠️ Ошибка запроса: ${err}`;
+    }
+  }
+</script>
+</body>
+</html>
