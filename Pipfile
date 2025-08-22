@@ -9,6 +9,7 @@ uvicorn = "*"
 httpx = "*"
 aiosmtplib = "*"
 aioimaplib = "*"
+pydantic = "*"
 
 [dev-packages]
 black = "*"
