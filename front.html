@@ -5,7 +5,7 @@
   <title>Проверка сети</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
       background: #f4f6f9;
       display: flex;
       justify-content: center;
@@ -16,19 +16,21 @@
     }
     .container {
       background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      width: 420px;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+      width: 460px;
+      transition: 0.3s;
     }
-    h2 { margin-top: 0; text-align: center; }
-    label { display: block; margin-top: 10px; }
+    h2 { margin-top: 0; text-align: center; color: #007bff; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
     input, select, button {
       width: 100%;
-      padding: 8px;
+      padding: 10px;
       margin-top: 5px;
-      border-radius: 6px;
+      border-radius: 8px;
       border: 1px solid #ccc;
+      font-size: 14px;
     }
     button {
       background: #007bff;
@@ -36,15 +38,33 @@
       font-weight: bold;
       cursor: pointer;
       margin-top: 15px;
+      border: none;
+      transition: 0.2s;
     }
     button:hover { background: #0056b3; }
+    .hidden { display: none; }
     pre {
-      background: #eee;
-      padding: 10px;
-      border-radius: 6px;
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
       white-space: pre-wrap;
       margin-top: 15px;
+      border-left: 4px solid #007bff;
     }
+    .status-success { border-left-color: #28a745; color: #155724; background: #d4edda; }
+    .status-error   { border-left-color: #dc3545; color: #721c24; background: #f8d7da; }
+    .status-wait    { border-left-color: #ffc107; color: #856404; background: #fff3cd; }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #007bff;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 10px;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -67,20 +87,15 @@
       <label><input type="checkbox" id="http_ssl"> Использовать HTTPS</label>
       <label>Метод HTTP:
         <select id="http_method">
-          <option>GET</option>
-          <option>POST</option>
-          <option>PUT</option>
-          <option>PATCH</option>
-          <option>DELETE</option>
-          <option>HEAD</option>
-          <option>OPTIONS</option>
+          <option>GET</option><option>POST</option><option>PUT</option>
+          <option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option>
         </select>
       </label>
     </div>
 
     <!-- IMAP -->
-    <div id="imap-fields" style="display:none;">
-      <label>Host: <input type="text" id="imap_host"></label>
+    <div id="imap-fields" class="hidden">
+      <label>Host: <input type="text" id="imap_host" placeholder="imap.gmail.com"></label>
       <label>Port: <input type="number" id="imap_port" value="993"></label>
       <label><input type="checkbox" id="imap_ssl" checked> SSL</label>
       <label>Timeout: <input type="number" id="imap_timeout" value="5"></label>
@@ -89,8 +104,8 @@
     </div>
 
     <!-- SMTP -->
-    <div id="smtp-fields" style="display:none;">
-      <label>Host: <input type="text" id="smtp_host"></label>
+    <div id="smtp-fields" class="hidden">
+      <label>Host: <input type="text" id="smtp_host" placeholder="smtp.gmail.com"></label>
       <label>Port: <input type="number" id="smtp_port" value="465"></label>
       <label>Timeout: <input type="number" id="smtp_timeout" value="5"></label>
       <label><input type="checkbox" id="smtp_use_tls" checked> Use TLS</label>
@@ -105,73 +120,81 @@
   </div>
 
 <script>
-  // переключение форм
-  document.getElementById("type").addEventListener("change", function() {
-    const type = this.value;
-    document.getElementById("http-fields").style.display = type === "HTTP" ? "block" : "none";
-    document.getElementById("imap-fields").style.display = type === "IMAP" ? "block" : "none";
-    document.getElementById("smtp-fields").style.display = type === "SMTP" ? "block" : "none";
+  const typeSelect = document.getElementById("type");
+  const resultEl = document.getElementById("result");
+
+  typeSelect.addEventListener("change", () => {
+    ["http", "imap", "smtp"].forEach(t => {
+      document.getElementById(`${t}-fields`).classList.add("hidden");
+    });
+    document.getElementById(typeSelect.value.toLowerCase()+"-fields").classList.remove("hidden");
   });
 
   // автопорты
-  document.getElementById("http_ssl").addEventListener("change", function() {
-    document.getElementById("http_port").value = this.checked ? 443 : 80;
+  http_ssl.addEventListener("change", e => {
+    http_port.value = e.target.checked ? 443 : 80;
   });
-  document.getElementById("imap_ssl").addEventListener("change", function() {
-    document.getElementById("imap_port").value = this.checked ? 993 : 143;
+  imap_ssl.addEventListener("change", e => {
+    imap_port.value = e.target.checked ? 993 : 143;
   });
-  document.getElementById("smtp_use_tls").addEventListener("change", function() {
-    if (this.checked) {
-      document.getElementById("smtp_start_tls").checked = false;
-      document.getElementById("smtp_port").value = 465;
+
+  smtp_use_tls.addEventListener("change", e => {
+    if (e.target.checked) {
+      smtp_start_tls.checked = false;
+      smtp_port.value = 465; // SMTPS
+    } else if (!smtp_start_tls.checked) {
+      smtp_port.value = 25; // если оба выключены → 25
     }
   });
-  document.getElementById("smtp_start_tls").addEventListener("change", function() {
-    if (this.checked) {
-      document.getElementById("smtp_use_tls").checked = false;
-      document.getElementById("smtp_port").value = 587;
+
+  smtp_start_tls.addEventListener("change", e => {
+    if (e.target.checked) {
+      smtp_use_tls.checked = false;
+      smtp_port.value = 587; // STARTTLS
+    } else if (!smtp_use_tls.checked) {
+      smtp_port.value = 25; // если оба выключены → 25
     }
   });
 
   async function checkConnection() {
-    const type = document.getElementById("type").value;
+    const type = typeSelect.value;
     let data = { type };
 
     if (type === "HTTP") {
       data = {
         ...data,
-        address: document.getElementById("http_address").value,
-        port: parseInt(document.getElementById("http_port").value),
-        timeout: parseFloat(document.getElementById("http_timeout").value),
-        method: document.getElementById("http_method").value,
-        ssl: document.getElementById("http_ssl").checked
+        address: http_address.value,
+        port: +http_port.value,
+        timeout: +http_timeout.value,
+        method: http_method.value,
+        ssl: http_ssl.checked
       };
     } else if (type === "IMAP") {
       data = {
         ...data,
-        host: document.getElementById("imap_host").value,
-        port: parseInt(document.getElementById("imap_port").value),
-        ssl: document.getElementById("imap_ssl").checked,
-        timeout: parseFloat(document.getElementById("imap_timeout").value),
-        username: document.getElementById("imap_username").value,
-        password: document.getElementById("imap_password").value
+        host: imap_host.value,
+        port: +imap_port.value,
+        ssl: imap_ssl.checked,
+        timeout: +imap_timeout.value,
+        username: imap_username.value,
+        password: imap_password.value
       };
     } else if (type === "SMTP") {
       data = {
         ...data,
-        host: document.getElementById("smtp_host").value,
-        port: parseInt(document.getElementById("smtp_port").value),
-        timeout: parseFloat(document.getElementById("smtp_timeout").value),
-        use_tls: document.getElementById("smtp_use_tls").checked,
-        start_tls: document.getElementById("smtp_start_tls").checked,
-        validate_certs: document.getElementById("smtp_validate_certs").checked,
-        username: document.getElementById("smtp_username").value,
-        password: document.getElementById("smtp_password").value
+        host: smtp_host.value,
+        port: +smtp_port.value,
+        timeout: +smtp_timeout.value,
+        use_tls: smtp_use_tls.checked,
+        start_tls: smtp_start_tls.checked,
+        validate_certs: smtp_validate_certs.checked,
+        username: smtp_username.value,
+        password: smtp_password.value
       };
     }
 
-    const resultEl = document.getElementById("result");
-    resultEl.textContent = "⏳ Проверка...";
+    resultEl.className = "status-wait";
+    resultEl.innerHTML = `<span class="loader"></span> Проверка...`;
 
     try {
       const response = await fetch("http://127.0.0.1:8000/check", {
@@ -182,18 +205,19 @@
       const result = await response.json();
 
       if (result.status === "success") {
+        resultEl.className = "status-success";
         if (result.type === "HTTP") {
           resultEl.textContent =
-            `✅ HTTP ${result.code} (${result.protocol})\n\n` +
-            `Headers:\n${JSON.stringify(result.headers, null, 2)}\n\n` +
-            `Body:\n${result.body}`;
+            `✅ HTTP ${result.code} (${result.protocol})\n\nHeaders:\n${JSON.stringify(result.headers, null, 2)}\n\nBody:\n${result.body}`;
         } else {
-          resultEl.textContent = `✅ ${result.type} — ${result.message || "соединение успешно"}`;
+          resultEl.textContent = `✅ ${result.type} — ${result.message || "Соединение успешно"}`;
         }
       } else {
+        resultEl.className = "status-error";
         resultEl.textContent = `❌ Ошибка: ${result.error}`;
       }
     } catch (err) {
+      resultEl.className = "status-error";
       resultEl.textContent = `⚠️ Ошибка запроса: ${err}`;
     }
   }

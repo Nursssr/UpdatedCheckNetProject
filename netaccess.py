@@ -22,8 +22,8 @@ class CheckRequestHTTP(BaseModel):
     address: str
     port: int
     timeout: float = 5.0
-    method: str = "GET"
-    ssl: bool = False   # 👈 добавлено
+    method: str = "GET" #POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+    ssl: bool = False
 
 class CheckRequestIMAP(BaseModel):
     type: str = "IMAP"
